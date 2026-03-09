@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WeddingInvite</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #0f0e0c;
+  --surf:  #181614;
+  --card:  rgba(255,255,255,.04);
+  --bord:  rgba(201,168,76,.12);
+  --bord2: rgba(201,168,76,.3);
+  --gold:  #c9a84c;
+  --gold2: #e8d5a3;
+  --gold3: #7a5e18;
+  --text:  #ede5d8;
+  --muted: rgba(237,229,216,.42);
+  --dim:   rgba(237,229,216,.18);
+  --white: #fffaf2;
+  --safe:  env(safe-area-inset-bottom, 0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text)}
+body{font-family:'Jost',sans-serif;display:flex;flex-direction:column}
+
+/* ── TOPBAR ── */
+.topbar{
+  flex-shrink:0;padding:13px 16px 10px;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--bord);
+  background:rgba(15,14,12,.95);
+  backdrop-filter:blur(16px);
+  position:relative;z-index:10;
+}
+.tb-logo{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.1rem;font-weight:300;color:var(--gold2)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.tb-hist{
+  padding:5px 12px;border:1px solid var(--bord);border-radius:12px;
+  font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
+  cursor:pointer;transition:all .2s;background:transparent;
+}
+.tb-hist:active{border-color:var(--gold);color:var(--gold2)}
+.tb-step{font-size:.58rem;letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
+
+/* PROGRESS */
+.prog{height:2px;background:rgba(201,168,76,.08);flex-shrink:0}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--gold3),var(--gold),var(--gold2));transition:width .4s ease;width:0%}
+
+/* STEP DOTS */
+.dots{display:flex;justify-content:center;gap:7px;padding:8px 0 5px;flex-shrink:0}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--bord);transition:all .3s}
+.dot.done{background:rgba(201,168,76,.4)}
+.dot.active{background:var(--gold);transform:scale(1.4)}
+
+/* ── SCROLL ── */
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(76px + var(--safe))}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ── SCREENS ── */
+.screen{display:none;padding:16px 15px 10px;animation:fadeUp .3s ease}
+.screen.active{display:block}
+.gen-screen,.ok-screen,.hist-screen{display:none;flex-direction:column;align-items:center;padding:24px 16px calc(80px + var(--safe))}
+.gen-screen.active,.ok-screen.active,.hist-screen.active{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* SCREEN HEADER */
+.sh{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:300;color:var(--white);margin-bottom:3px}
+.sh em{font-style:italic;color:var(--gold2)}
+.ss{font-size:.73rem;font-weight:300;color:var(--muted);margin-bottom:18px;line-height:1.5}
+
+/* DIVIDER */
+.sdiv{display:flex;align-items:center;gap:8px;margin:14px 0 10px}
+.sdiv span{font-size:.54rem;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);white-space:nowrap}
+.sdiv::before,.sdiv::after{content:'';flex:1;height:1px;background:var(--bord)}
+
+/* ── STYLE GRID ── */
+.sg{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.sc{border:1.5px solid var(--bord);border-radius:8px;overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
+.sc:active{transform:scale(.97)}
+.sc.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.sc-thumb{height:88px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.sc-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.62) 100%)}
+.sc-em{font-size:1.75rem;position:relative;z-index:1}
+.sc-nm{position:absolute;bottom:7px;left:0;right:0;text-align:center;font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.88);z-index:2}
+.sc-chk{position:absolute;top:6px;right:6px;z-index:3;width:18px;height:18px;border-radius:50%;background:var(--gold);display:none;align-items:center;justify-content:center;font-size:.65rem;color:#0a0804}
+.sc.sel .sc-chk{display:flex}
+/* thumb bg */
+.t-rose{background:linear-gradient(155deg,#fce4ec,#c2185b)}
+.t-forest{background:linear-gradient(155deg,#0a1a0a,#2e6a2e)}
+.t-bw{background:linear-gradient(155deg,#f0ede8,#141414)}
+.t-choco{background:linear-gradient(155deg,#1a0a04,#7a3a10)}
+.t-nature{background:linear-gradient(155deg,#f0e8d4,#5a7a48)}
+.t-navy{background:linear-gradient(155deg,#04091a,#1a3a8a)}
+.t-milk{background:linear-gradient(155deg,#fefaf2,#c0a06a)}
+
+/* ── FORM ── */
+.fg{margin-bottom:12px}
+.fl{display:block;font-size:.56rem;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.fi{
+  width:100%;background:var(--card);border:1px solid var(--bord);border-radius:6px;
+  padding:11px 13px;font-family:'Jost',sans-serif;font-size:.86rem;font-weight:300;
+  color:var(--text);outline:none;transition:border-color .25s;-webkit-appearance:none;
+}
+.fi:focus{border-color:var(--bord2)}
+.fi::placeholder{color:rgba(237,229,216,.18)}
+textarea.fi{resize:none;min-height:68px;line-height:1.6}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+
+/* TOGGLE */
+.tog-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 13px;background:var(--card);border:1px solid var(--bord);
+  border-radius:6px;margin-bottom:7px;
+}
+.tog-lbl{font-size:.78rem;font-weight:300;color:var(--text)}
+.tog{width:36px;height:20px;border-radius:10px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:background .3s;flex-shrink:0}
+.tog.on{background:var(--gold)}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .3s}
+.tog.on::after{transform:translateX(16px)}
+
+/* ── DC PALETTES ── */
+.dc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.dc{border:1.5px solid var(--bord);border-radius:7px;padding:11px 10px;cursor:pointer;transition:all .2s}
+.dc:active{transform:scale(.97)}
+.dc.sel{border-color:var(--gold);background:rgba(201,168,76,.05)}
+.dc-sw{display:flex;gap:3px;margin-bottom:7px}
+.ds{flex:1;height:18px;border-radius:2px}
+.ds.ol{border:1px solid rgba(255,255,255,.2)}
+.dc-nm{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text);margin-bottom:2px;font-weight:400}
+.dc-ds{font-size:.63rem;font-weight:300;color:var(--muted);line-height:1.4}
+
+/* DC PREVIEW */
+.dc-prev{margin-top:12px;background:var(--card);border:1px solid var(--bord);border-radius:8px;padding:13px;display:none}
+.dc-prev.show{display:block}
+.dp-lbl{font-size:.53rem;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-bottom:9px}
+.dp-sw{display:flex;gap:5px;margin-bottom:18px}
+.dp-s{flex:1;height:32px;border-radius:3px;position:relative}
+.dp-s span{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);font-size:.47rem;white-space:nowrap;color:var(--muted)}
+.dp-txt{font-size:.7rem;font-weight:300;color:var(--muted);line-height:1.55;font-style:italic}
+
+/* ── REVIEW ── */
+.rv-card{background:var(--card);border:1px solid var(--bord);border-radius:8px;padding:14px;margin-bottom:9px}
+.rv-lbl{font-size:.53rem;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.rv-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;font-size:.8rem}
+.rv-k{font-weight:300;color:var(--muted)}
+.rv-v{font-weight:400;color:var(--text);text-align:right;max-width:62%;word-break:break-word}
+.st-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.22);border-radius:12px;font-size:.7rem;color:var(--gold2)}
+
+/* ── GENERATING ── */
+.gen-ring{width:72px;height:72px;border-radius:50%;border:2px solid rgba(201,168,76,.12);border-top-color:var(--gold);animation:spin 1s linear infinite;margin-bottom:24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gen-t{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:300;color:var(--white);margin-bottom:6px}
+.gen-t em{font-style:italic;color:var(--gold2)}
+.gen-s{font-size:.78rem;font-weight:300;color:var(--muted);line-height:1.6;text-align:center}
+.gen-msg{margin-top:16px;font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* ── SUCCESS ── */
+.ok-ico{font-size:3.2rem;margin-bottom:18px;animation:pop .5s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.ok-t{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:var(--white);margin-bottom:6px;text-align:center}
+.ok-t em{font-style:italic;color:var(--gold2)}
+.ok-s{font-size:.8rem;font-weight:300;color:var(--muted);line-height:1.65;text-align:center;margin-bottom:20px}
+
+/* PREVIEW CARD */
+.preview-card{
+  width:100%;border:1px solid var(--bord2);border-radius:10px;overflow:hidden;margin-bottom:14px;
+  background:var(--surf);
+}
+.preview-header{padding:10px 14px;border-bottom:1px solid var(--bord);display:flex;align-items:center;gap:8px}
+.prev-dot{width:8px;height:8px;border-radius:50%}
+.prev-url{font-size:.68rem;color:var(--muted);letter-spacing:.04em;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preview-thumb{
+  height:160px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(201,168,76,.06),rgba(201,168,76,.02));
+  position:relative;overflow:hidden;
+}
+.prev-names{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-style:italic;font-weight:300;color:var(--gold2);text-align:center;line-height:1.1}
+.prev-date{font-size:.65rem;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin-top:4px;text-align:center}
+.prev-deco{position:absolute;opacity:.08;font-size:5rem}
+.prev-deco.tl{top:-10px;left:-10px}
+.prev-deco.br{bottom:-10px;right:-10px}
+
+.url-box{
+  width:100%;padding:12px 13px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);
+  border-radius:8px;font-size:.75rem;color:var(--gold2);word-break:break-all;line-height:1.5;margin-bottom:12px;
+}
+
+.cp-btn{
+  width:100%;padding:14px;background:linear-gradient(135deg,var(--gold),var(--gold3));border:none;border-radius:9px;
+  color:#0a0804;font-family:'Jost',sans-serif;font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;font-weight:500;
+  cursor:pointer;transition:opacity .2s;margin-bottom:9px;
+}
+.cp-btn:active{opacity:.82}
+.new-btn{
+  width:100%;padding:12px;background:transparent;border:1px solid var(--bord);border-radius:9px;
+  color:var(--muted);font-family:'Jost',sans-serif;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;
+}
+.new-btn:active{border-color:var(--gold);color:var(--gold2)}
+
+/* ── HISTORY ── */
+.hist-screen{align-items:stretch;width:100%}
+.hist-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:var(--muted);text-align:center;padding:40px;gap:12px}
+.hist-empty span{font-size:2.5rem;opacity:.35}
+.hist-empty p{font-size:.82rem;font-weight:300;line-height:1.6}
+
+.hi{
+  background:var(--card);border:1px solid var(--bord);border-radius:8px;
+  padding:13px;margin-bottom:7px;width:100%;
+  display:flex;align-items:center;gap:11px;
+  cursor:pointer;transition:border-color .2s;
+}
+.hi:active{border-color:var(--gold)}
+.hi-em{font-size:1.3rem;flex-shrink:0}
+.hi-info{flex:1;min-width:0}
+.hi-names{font-size:.85rem;font-weight:400;color:var(--white);margin-bottom:2px}
+.hi-meta{font-size:.65rem;font-weight:300;color:var(--muted)}
+.hi-url{font-size:.62rem;color:var(--gold);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hi-arr{color:var(--muted);font-size:.75rem}
+
+.back-link{
+  display:flex;align-items:center;gap:6px;font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--muted);cursor:pointer;margin-bottom:16px;transition:color .2s;width:100%;
+}
+.back-link:active{color:var(--gold2)}
+
+/* ── BOTTOM BAR ── */
+.btm{
+  position:fixed;bottom:0;left:0;right:0;z-index:20;
+  padding:10px 15px calc(10px + var(--safe));
+  background:linear-gradient(180deg,transparent 0%,rgba(15,14,12,.98) 45%);
+  display:flex;gap:9px;
+}
+.btn-bk{
+  padding:13px 17px;background:var(--card);border:1px solid var(--bord);border-radius:9px;
+  color:var(--muted);font-family:'Jost',sans-serif;font-size:.67rem;letter-spacing:.18em;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;flex-shrink:0;
+}
+.btn-bk:active{border-color:var(--gold);color:var(--gold2)}
+.btn-nx{
+  flex:1;padding:13px;background:linear-gradient(135deg,var(--gold),var(--gold3));border:none;border-radius:9px;
+  color:#0a0804;font-family:'Jost',sans-serif;font-size:.7rem;letter-spacing:.26em;text-transform:uppercase;font-weight:500;
+  cursor:pointer;transition:opacity .2s;
+}
+.btn-nx:active{opacity:.82}
+.btn-nx:disabled{opacity:.35;cursor:not-allowed}
+
+/* PHOTO UPLOAD */
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.photo-slot{
+  border:1.5px dashed rgba(201,168,76,.25);border-radius:10px;
+  overflow:hidden;cursor:pointer;transition:all .25s;position:relative;
+  background:var(--card);aspect-ratio:3/4;
+}
+.photo-slot.wide{grid-column:1/-1;aspect-ratio:16/9}
+.photo-slot:active{border-color:var(--gold);background:rgba(201,168,76,.05)}
+.photo-slot.has-photo{border-style:solid;border-color:var(--bord2)}
+.photo-slot img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.photo-placeholder{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:7px;
+  pointer-events:none;padding:12px;text-align:center;
+}
+.photo-slot.has-photo .photo-placeholder{display:none}
+.ph-ico{font-size:1.6rem;opacity:.45}
+.ph-lbl{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:400}
+.ph-hint{font-size:.62rem;font-weight:300;color:var(--muted);line-height:1.4}
+.photo-del{
+  position:absolute;top:7px;right:7px;z-index:2;
+  width:24px;height:24px;border-radius:50%;
+  background:rgba(0,0,0,.55);border:none;color:#fff;
+  font-size:.75rem;cursor:pointer;display:none;
+  align-items:center;justify-content:center;
+}
+.photo-slot.has-photo .photo-del{display:flex}
+.photo-note{
+  font-size:.7rem;font-weight:300;color:var(--muted);line-height:1.55;
+  text-align:center;margin-top:8px;padding:10px 14px;
+  background:rgba(201,168,76,.04);border:1px solid var(--bord);border-radius:7px;
+}
+.photo-skip{
+  width:100%;padding:11px;margin-top:10px;
+  background:transparent;border:1px dashed var(--bord);border-radius:8px;
+  color:var(--muted);font-family:'Jost',sans-serif;
+  font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;
+}
+.photo-skip:active{border-color:var(--gold);color:var(--gold2)}
+
+/* QR */
+.qr-wrap{width:100%;background:var(--card);border:1px solid var(--bord);border-radius:10px;padding:14px;margin-bottom:12px;display:flex;align-items:center;gap:14px}
+.qr-canvas-box{flex-shrink:0;border-radius:6px;overflow:hidden;background:#fff;padding:5px;line-height:0}
+.qr-info{flex:1;min-width:0}
+.qr-lbl{font-size:.54rem;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.qr-hint{font-size:.72rem;font-weight:300;color:var(--muted);line-height:1.5;margin-bottom:8px}
+.qr-dl{padding:7px 12px;background:transparent;border:1px solid var(--bord2);border-radius:6px;font-family:'Jost',sans-serif;font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold2);cursor:pointer;transition:all .2s}
+.qr-dl:active{background:rgba(201,168,76,.08)}
+
+/* TIMING EDITOR */
+.tm-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.tm-item{
+  display:flex;align-items:center;gap:8px;
+  background:var(--card);border:1px solid var(--bord);border-radius:8px;
+  padding:10px 11px;transition:border-color .2s;
+}
+.tm-item:focus-within{border-color:var(--bord2)}
+.tm-drag{
+  cursor:grab;color:var(--dim);font-size:1rem;flex-shrink:0;
+  touch-action:none;user-select:none;padding:2px 4px;
+}
+.tm-drag:active{cursor:grabbing}
+.tm-emoji-btn{
+  width:34px;height:34px;flex-shrink:0;border-radius:6px;
+  background:rgba(201,168,76,.07);border:1px solid var(--bord);
+  font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .2s;
+}
+.tm-emoji-btn:active{background:rgba(201,168,76,.15)}
+.tm-fields{flex:1;display:flex;gap:6px;min-width:0}
+.tm-name{
+  flex:1;background:transparent;border:none;outline:none;
+  font-family:'Jost',sans-serif;font-size:.82rem;font-weight:300;color:var(--text);
+  min-width:0;
+}
+.tm-name::placeholder{color:rgba(237,229,216,.18)}
+.tm-time{
+  width:72px;flex-shrink:0;background:transparent;border:none;border-left:1px solid var(--bord);
+  padding-left:8px;outline:none;
+  font-family:'Jost',sans-serif;font-size:.82rem;font-weight:300;color:var(--gold2);
+  -webkit-appearance:none;
+}
+.tm-del{
+  width:26px;height:26px;flex-shrink:0;border-radius:5px;
+  background:transparent;border:1px solid rgba(255,80,80,.2);
+  color:rgba(255,100,100,.5);font-size:.85rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.tm-del:active{background:rgba(255,80,80,.12);color:rgba(255,120,120,.9)}
+.tm-add{
+  width:100%;padding:11px;background:var(--card);border:1px dashed rgba(201,168,76,.2);
+  border-radius:8px;color:var(--gold);font-family:'Jost',sans-serif;
+  font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;
+  transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.tm-add:active{border-color:var(--gold);background:rgba(201,168,76,.05)}
+/* emoji picker popup */
+.emoji-picker{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  background:#1c1a16;border:1px solid var(--bord2);border-radius:12px;
+  padding:12px;display:none;z-index:100;width:260px;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+}
+.emoji-picker.show{display:block}
+.ep-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.ep-em{
+  width:100%;aspect-ratio:1;border-radius:6px;border:none;background:transparent;
+  font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.ep-em:active{background:rgba(201,168,76,.15)}
+
+/* TOAST */
+.toast{
+  position:fixed;top:65px;left:50%;transform:translateX(-50%) translateY(-16px);
+  background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.28);
+  border-radius:18px;padding:7px 18px;font-size:.7rem;color:var(--gold2);
+  opacity:0;transition:all .3s;pointer-events:none;z-index:200;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-logo">WeddingInvite</div>
+  <div class="tb-right">
+    <button class="tb-hist" onclick="showHistory()">История</button>
+    <div class="tb-step" id="tb-step">1 / 5</div>
+  </div>
+</div>
+<div class="prog"><div class="prog-bar" id="prog-bar"></div></div>
+<div class="dots" id="dots">
+  <div class="dot active" id="d1"></div>
+  <div class="dot" id="d2"></div>
+  <div class="dot" id="d3"></div>
+  <div class="dot" id="d4"></div>
+  <div class="dot" id="d5"></div>
+  <div class="dot" id="d6"></div>
+</div>
+
+<!-- SCROLL -->
+<div class="scroll" id="scroll">
+
+  <!-- ── S1: STYLE ── -->
+  <div class="screen active" id="s1">
+    <div class="sh">Выберите <em>стиль</em></div>
+    <div class="ss">7 тем — каждая со своей атмосферой и типографикой</div>
+    <div class="sg">
+      <div class="sc sel" data-s="rose"   data-n="Розовый Bow" data-e="🎀" onclick="selStyle(this)"><div class="sc-thumb t-rose"><div class="sc-em">🎀</div><div class="sc-nm">Розовый Bow</div></div><div class="sc-chk">✓</div></div>
+      <div class="sc"     data-s="forest" data-n="Тёмный Лес"  data-e="🌿" onclick="selStyle(this)"><div class="sc-thumb t-forest"><div class="sc-em">🌿</div><div class="sc-nm">Тёмный Лес</div></div><div class="sc-chk">✓</div></div>
+      <div class="sc"     data-s="bw"     data-n="Editorial B&amp;W" data-e="🖤" onclick="selStyle(this)"><div class="sc-thumb t-bw"><div class="sc-em">🖤</div><div class="sc-nm">Editorial B&W</div></div><div class="sc-chk">✓</div></div>
+      <div class="sc"     data-s="choco"  data-n="Шоколад"     data-e="☕" onclick="selStyle(this)"><div class="sc-thumb t-choco"><div class="sc-em">☕</div><div class="sc-nm">Шоколад</div></div><div class="sc-chk">✓</div></div>
+      <div class="sc"     data-s="nature" data-n="Природный"   data-e="🌾" onclick="selStyle(this)"><div class="sc-thumb t-nature"><div class="sc-em">🌾</div><div class="sc-nm">Природный</div></div><div class="sc-chk">✓</div></div>
+      <div class="sc"     data-s="navy"   data-n="Морской"     data-e="🌊" onclick="selStyle(this)"><div class="sc-thumb t-navy"><div class="sc-em">🌊</div><div class="sc-nm">Морской</div></div><div class="sc-chk">✓</div></div>
+      <div class="sc"     data-s="milk"   data-n="Молочный"    data-e="🤍" onclick="selStyle(this)"><div class="sc-thumb t-milk"><div class="sc-em">🤍</div><div class="sc-nm">Молочный</div></div><div class="sc-chk">✓</div></div>
+    </div>
+  </div>
+
+  <!-- ── S2: DATA ── -->
+  <div class="screen" id="s2">
+    <div class="sh"><em>Данные</em> свадьбы</div>
+    <div class="ss">Заполните — AI создаст персональный текст и разметку</div>
+
+    <div class="sdiv"><span>Молодожёны</span></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Жених</label><input class="fi" id="groom" type="text" placeholder="Александр" autocomplete="off"></div>
+      <div class="fg"><label class="fl">Невеста</label><input class="fi" id="bride" type="text" placeholder="Мария" autocomplete="off"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Дата</label><input class="fi" id="wdate" type="date"></div>
+      <div class="fg"><label class="fl">Город</label><input class="fi" id="city" type="text" placeholder="Москва" autocomplete="off"></div>
+    </div>
+
+    <div class="sdiv"><span>Церемония</span></div>
+    <div class="fg"><label class="fl">Адрес ЗАГСа</label><input class="fi" id="addr1" type="text" placeholder="Фурманный пер., 6" autocomplete="off"></div>
+    <div class="fg"><label class="fl">Время сбора</label><input class="fi" id="time1" type="time" value="11:00"></div>
+
+    <div class="sdiv"><span>Банкет</span></div>
+    <div class="fg"><label class="fl">Адрес банкета</label><input class="fi" id="addr2" type="text" placeholder="Садовая-Кудринская, 32" autocomplete="off"></div>
+    <div class="fg"><label class="fl">Время сбора</label><input class="fi" id="time2" type="time" value="17:00"></div>
+
+    <div class="sdiv"><span>Пожелания</span></div>
+    <div class="fg"><label class="fl">Текст от молодожёнов</label><textarea class="fi" id="wishes" placeholder="Ваше присутствие — лучший подарок..."></textarea></div>
+
+    <div class="sdiv"><span>Разделы сайта</span></div>
+    <div class="tog-row"><span class="tog-lbl">Обратный отсчёт</span><div class="tog on" id="t-countdown" onclick="this.classList.toggle('on')"></div></div>
+    <div class="tog-row"><span class="tog-lbl">RSVP-форма</span><div class="tog on" id="t-rsvp" onclick="this.classList.toggle('on')"></div></div>
+  </div>
+
+  <!-- ── S3: PHOTOS ── -->
+  <div class="screen" id="s3">
+    <div class="sh">Фото <em>пары</em></div>
+    <div class="ss">Добавьте фотографии — они появятся в блоке «О паре» и в галерее внизу сайта</div>
+
+    <div class="sdiv"><span>Портреты</span></div>
+    <div class="photo-grid">
+      <!-- Жених -->
+      <div class="photo-slot" id="ps-groom" onclick="triggerPhoto('groom')">
+        <img id="pi-groom" src="" alt="" style="display:none">
+        <input type="file" id="pf-groom" accept="image/*" onchange="handlePhoto('groom',this)" onclick="event.stopPropagation()">
+        <div class="photo-placeholder">
+          <div class="ph-ico">🤵</div>
+          <div class="ph-lbl">Жених</div>
+          <div class="ph-hint">Портрет · блок «О паре»</div>
+        </div>
+        <button class="photo-del" onclick="delPhoto('groom',event)">✕</button>
+      </div>
+      <!-- Невеста -->
+      <div class="photo-slot" id="ps-bride" onclick="triggerPhoto('bride')">
+        <img id="pi-bride" src="" alt="" style="display:none">
+        <input type="file" id="pf-bride" accept="image/*" onchange="handlePhoto('bride',this)" onclick="event.stopPropagation()">
+        <div class="photo-placeholder">
+          <div class="ph-ico">👰</div>
+          <div class="ph-lbl">Невеста</div>
+          <div class="ph-hint">Портрет · блок «О паре»</div>
+        </div>
+        <button class="photo-del" onclick="delPhoto('bride',event)">✕</button>
+      </div>
+    </div>
+
+    <div class="sdiv"><span>Галерея</span></div>
+    <div class="photo-grid" id="gallery-grid">
+      <!-- слоты 1-4 генерируются JS -->
+    </div>
+    <button class="tm-add" style="margin-bottom:10px" onclick="addGallerySlot()">
+      <span>＋</span> Добавить фото в галерею
+    </button>
+
+    <div class="photo-note">
+      Фото загружаются в Supabase Storage. Формат: JPG/PNG до 5 МБ каждое.
+    </div>
+    <button class="photo-skip" onclick="skipPhotos()">Пропустить — без фото</button>
+  </div>
+
+  <!-- ── S4: TIMING ── -->
+  <div class="screen" id="s4">
+    <div class="sh">Тайминг <em>дня</em></div>
+    <div class="ss">Настройте программу — добавляйте, удаляйте и переименовывайте события</div>
+
+    <div class="tog-row" style="margin-bottom:14px">
+      <span class="tog-lbl">Показывать тайминг на сайте</span>
+      <div class="tog on" id="t-timing" onclick="toggleTiming(this)"></div>
+    </div>
+
+    <div id="tm-editor">
+      <div class="tm-list" id="tm-list"></div>
+      <button class="tm-add" onclick="addTmItem()">
+        <span>＋</span> Добавить событие
+      </button>
+    </div>
+  </div>
+
+  <!-- ── S5: DRESSCODE ── -->
+  <div class="screen" id="s5">
+    <div class="sh">Дресс-<em>код</em></div>
+    <div class="ss">Выберите цветовую палитру — появится на сайте с рекомендациями гостям</div>
+
+    <div class="fg"><label class="fl">Стиль одежды</label><input class="fi" id="dc-style" type="text" placeholder="Торжественный вечерний" autocomplete="off"></div>
+
+    <div class="sdiv"><span>Палитра</span></div>
+    <div class="dc-grid">
+      <div class="dc sel" data-dc="powder"      onclick="selDC(this)"><div class="dc-sw"><div class="ds" style="background:#f2e0d6"></div><div class="ds" style="background:#e8c4b8"></div><div class="ds" style="background:#c9a84c"></div><div class="ds" style="background:#d4c5a9"></div></div><div class="dc-nm">Пудровый</div><div class="dc-ds">Розовые и персиковые</div></div>
+      <div class="dc"     data-dc="burgundygold" onclick="selDC(this)"><div class="dc-sw"><div class="ds" style="background:#6b0f1a"></div><div class="ds" style="background:#9b2335"></div><div class="ds" style="background:#c9a84c"></div><div class="ds" style="background:#e8d5a3"></div></div><div class="dc-nm">Бордо &amp; Золото</div><div class="dc-ds">Роскошная винно-золотая</div></div>
+      <div class="dc"     data-dc="strictbw"     onclick="selDC(this)"><div class="dc-sw"><div class="ds ol" style="background:#fff"></div><div class="ds" style="background:#d0d0d0"></div><div class="ds" style="background:#404040"></div><div class="ds" style="background:#000"></div></div><div class="dc-nm">Чёрно-белый</div><div class="dc-ds">Строгий контраст</div></div>
+      <div class="dc"     data-dc="allwhite"     onclick="selDC(this)"><div class="dc-sw"><div class="ds ol" style="background:#fff"></div><div class="ds" style="background:#f5f0e8"></div><div class="ds" style="background:#ede8de"></div><div class="ds" style="background:#d8d0c0"></div></div><div class="dc-nm">Полностью белый</div><div class="dc-ds">Все оттенки айвори</div></div>
+      <div class="dc"     data-dc="allblack"     onclick="selDC(this)"><div class="dc-sw"><div class="ds" style="background:#1a1a1a"></div><div class="ds" style="background:#2e2e2e"></div><div class="ds" style="background:#4a4a4a"></div><div class="ds" style="background:#686868"></div></div><div class="dc-nm">Total Black</div><div class="dc-ds">Драматичный чёрный</div></div>
+      <div class="dc"     data-dc="lemon"        onclick="selDC(this)"><div class="dc-sw"><div class="ds" style="background:#fffde7"></div><div class="ds" style="background:#f9e44a"></div><div class="ds" style="background:#c8a800"></div><div class="ds" style="background:#7a6200"></div></div><div class="dc-nm">Лимонный</div><div class="dc-ds">Солнечная жёлтая</div></div>
+      <div class="dc"     data-dc="nature"       onclick="selDC(this)"><div class="dc-sw"><div class="ds" style="background:#e8dcc8"></div><div class="ds" style="background:#8a9e7a"></div><div class="ds" style="background:#6b7a5c"></div><div class="ds" style="background:#c4b99a"></div></div><div class="dc-nm">Природный</div><div class="dc-ds">Земляные оттенки</div></div>
+      <div class="dc"     data-dc="milk"         onclick="selDC(this)"><div class="dc-sw"><div class="ds" style="background:#faf6ee"></div><div class="ds" style="background:#e8dcc8"></div><div class="ds" style="background:#c8a87a"></div><div class="ds" style="background:#8a6840"></div></div><div class="dc-nm">Молочный</div><div class="dc-ds">Молочно-карамельный</div></div>
+      <div class="dc"     data-dc="choco"        onclick="selDC(this)"><div class="dc-sw"><div class="ds" style="background:#f0e8d8"></div><div class="ds" style="background:#d4a07a"></div><div class="ds" style="background:#8b5e3c"></div><div class="ds" style="background:#4a2c1a"></div></div><div class="dc-nm">Шоколад</div><div class="dc-ds">Карамельные тона</div></div>
+      <div class="dc"     data-dc="forest"       onclick="selDC(this)"><div class="dc-sw"><div class="ds" style="background:#a5c49a"></div><div class="ds" style="background:#f5f0e8"></div><div class="ds" style="background:#2d4a2d"></div><div class="ds" style="background:#1a1a1a"></div></div><div class="dc-nm">Тёмный лес</div><div class="dc-ds">Глубокие зелёные</div></div>
+      <div class="dc"     data-dc="bw"           onclick="selDC(this)"><div class="dc-sw"><div class="ds" style="background:#e8e0d4"></div><div class="ds" style="background:#b8a898"></div><div class="ds" style="background:#5a5040"></div><div class="ds" style="background:#1a1a1a"></div></div><div class="dc-nm">Монохром</div><div class="dc-ds">Серо-бежевые</div></div>
+      <div class="dc"     data-dc="navy"         onclick="selDC(this)"><div class="dc-sw"><div class="ds" style="background:#f0ece4"></div><div class="ds" style="background:#a0b8d4"></div><div class="ds" style="background:#c8b87a"></div><div class="ds" style="background:#1b2d44"></div></div><div class="dc-nm">Морской</div><div class="dc-ds">Синий и золото</div></div>
+    </div>
+
+    <div class="dc-prev show" id="dc-prev">
+      <div class="dp-lbl">Предпросмотр</div>
+      <div class="dp-sw" id="dp-sw"></div>
+      <div class="dp-txt" id="dp-txt"></div>
+    </div>
+  </div>
+
+  <!-- ── S6: REVIEW ── -->
+  <div class="screen" id="s6">
+    <div class="sh">Всё <em>верно?</em></div>
+    <div class="ss">Проверьте данные перед генерацией</div>
+
+    <div class="rv-card">
+      <div class="rv-lbl">Стиль</div>
+      <span class="st-badge" id="rv-style">—</span>
+    </div>
+    <div class="rv-card">
+      <div class="rv-lbl">Молодожёны</div>
+      <div class="rv-row"><span class="rv-k">Жених</span><span class="rv-v" id="rv-groom">—</span></div>
+      <div class="rv-row"><span class="rv-k">Невеста</span><span class="rv-v" id="rv-bride">—</span></div>
+      <div class="rv-row"><span class="rv-k">Дата</span><span class="rv-v" id="rv-date">—</span></div>
+      <div class="rv-row"><span class="rv-k">Город</span><span class="rv-v" id="rv-city">—</span></div>
+    </div>
+    <div class="rv-card">
+      <div class="rv-lbl">Локации</div>
+      <div class="rv-row"><span class="rv-k">ЗАГС</span><span class="rv-v" id="rv-addr1">—</span></div>
+      <div class="rv-row"><span class="rv-k">Время</span><span class="rv-v" id="rv-time1">—</span></div>
+      <div class="rv-row"><span class="rv-k">Банкет</span><span class="rv-v" id="rv-addr2">—</span></div>
+      <div class="rv-row"><span class="rv-k">Время</span><span class="rv-v" id="rv-time2">—</span></div>
+    </div>
+    <div class="rv-card" id="rv-photos-card" style="display:none">
+      <div class="rv-lbl">Фотографии</div>
+      <div id="rv-photos-list"></div>
+    </div>
+    <div class="rv-card" id="rv-timing-card">
+      <div class="rv-lbl">Тайминг</div>
+      <div id="rv-timing-list"></div>
+    </div>
+    <div class="rv-card">
+      <div class="rv-lbl">Дресс-код</div>
+      <div class="rv-row"><span class="rv-k">Стиль</span><span class="rv-v" id="rv-dcs">—</span></div>
+      <div class="rv-row"><span class="rv-k">Палитра</span><span class="rv-v" id="rv-dcp">—</span></div>
+    </div>
+  </div>
+
+  <!-- ── GENERATING ── -->
+  <div class="gen-screen" id="s-gen">
+    <div class="gen-ring"></div>
+    <div class="gen-t">Создаю <em>сайт</em></div>
+    <div class="gen-s">AI генерирует персональное<br>приглашение для вашей свадьбы</div>
+    <div class="gen-msg" id="gen-msg">Выбираю типографику...</div>
+  </div>
+
+  <!-- ── SUCCESS ── -->
+  <div class="ok-screen" id="s-ok">
+    <div class="ok-ico">💍</div>
+    <div class="ok-t">Сайт <em>готов!</em></div>
+    <div class="ok-s" id="ok-sub">Ваш персональный сайт опубликован</div>
+
+    <!-- PREVIEW CARD -->
+    <div class="preview-card">
+      <div class="preview-header">
+        <div class="prev-dot" style="background:#ff5f57"></div>
+        <div class="prev-dot" style="background:#ffbd2e;margin:0 4px"></div>
+        <div class="prev-dot" style="background:#28c840"></div>
+        <div class="prev-url" id="prev-url">weddinginvite.ru/...</div>
+      </div>
+      <div class="preview-thumb">
+        <div class="prev-deco tl" id="prev-deco-tl">💐</div>
+        <div class="prev-deco br" id="prev-deco-br">💐</div>
+        <div>
+          <div class="prev-names" id="prev-names">Александр & Мария</div>
+          <div class="prev-date" id="prev-date">14 июня 2025</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="url-box" id="ok-url">—</div>
+
+    <!-- QR CODE -->
+    <div class="qr-wrap" id="qr-wrap">
+      <div class="qr-canvas-box"><canvas id="qr-canvas" width="100" height="100"></canvas></div>
+      <div class="qr-info">
+        <div class="qr-lbl">QR-код для гостей</div>
+        <div class="qr-hint">Распечатайте или покажите гостям — они сразу перейдут на сайт</div>
+        <button class="qr-dl" onclick="downloadQR()">⬇ Сохранить QR</button>
+      </div>
+    </div>
+
+    <button class="cp-btn" onclick="copyUrl()">📋 Скопировать ссылку</button>
+    <button class="new-btn" onclick="resetApp()">✦ Создать ещё одно</button>
+  </div>
+
+  <!-- ── HISTORY ── -->
+  <div class="hist-screen" id="s-hist">
+    <div class="back-link" onclick="hideHistory()">← Назад</div>
+    <div class="sh" style="width:100%;margin-bottom:4px">История <em>сайтов</em></div>
+    <div class="ss" style="width:100%">Ваши созданные приглашения</div>
+    <div id="hist-list" style="width:100%"></div>
+  </div>
+
+</div><!-- /scroll -->
+
+<!-- BOTTOM BAR -->
+<div class="btm" id="btm">
+  <button class="btn-bk" id="btn-bk" style="display:none" onclick="prevStep()">← Назад</button>
+  <button class="btn-nx" id="btn-nx" onclick="handleNext()">Далее →</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── TELEGRAM ──
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+// ── STATE ──
+let step = 1;
+const STEPS = 6;
+const ST = { style:'rose', styleName:'Розовый Bow', styleEmoji:'🎀', dc:'powder', dcName:'Пудровый' };
+let history = JSON.parse(localStorage.getItem('wi_hist') || '[]');
+let siteUrl = '';
+
+// Фото
+const photos = { groom: null, bride: null }; // { file, preview, url }
+let gallery = []; // [{ file, preview, url }, ...]
+
+// Тайминг по умолчанию
+let timingItems = [
+  { emoji:'💐', name:'Сбор гостей',      time:'11:00' },
+  { emoji:'💍', name:'Выездная роспись',  time:'12:00' },
+  { emoji:'📸', name:'Фотосессия',        time:'13:00' },
+  { emoji:'🚗', name:'Прогулка по городу',time:'14:30' },
+  { emoji:'🥂', name:'Банкет',            time:'17:00' },
+  { emoji:'🎂', name:'Торт',              time:'20:00' },
+  { emoji:'🎆', name:'Салют',             time:'23:30' },
+];
+let showTiming = true;
+
+// ── DC DATA ──
+const DC = {
+  powder:       { name:'Пудровый',       c:[{h:'#f2e0d6',n:'Пудра'},{h:'#e8c4b8',n:'Персик'},{h:'#c9a84c',n:'Золото'},{h:'#d4c5a9',n:'Шампань'}], t:'Платья пудровых, персиковых, кремовых оттенков. Кавалерам — светло-серый или бежевый костюм.' },
+  burgundygold: { name:'Бордо & Золото', c:[{h:'#6b0f1a',n:'Бордо'},{h:'#9b2335',n:'Винный'},{h:'#c9a84c',n:'Золото'},{h:'#e8d5a3',n:'Шампань'}], t:'Платья бордо, марсала или шампань. Кавалерам — тёмный костюм с золотым акцентом.' },
+  strictbw:     { name:'Чёрно-белый',    c:[{h:'#ffffff',n:'Белый'},{h:'#d0d0d0',n:'Серый'},{h:'#404040',n:'Тёмный'},{h:'#000000',n:'Чёрный'}], t:'Платья белые, серые или чёрные. Кавалерам — чёрный смокинг с белой рубашкой.' },
+  allwhite:     { name:'Полностью белый',c:[{h:'#ffffff',n:'Белый'},{h:'#f5f0e8',n:'Молоко'},{h:'#ede8de',n:'Айвори'},{h:'#d8d0c0',n:'Лён'}], t:'Все оттенки белого и айвори. Единый воздушный образ торжества.' },
+  allblack:     { name:'Total Black',    c:[{h:'#1a1a1a',n:'Чёрный'},{h:'#2e2e2e',n:'Антрацит'},{h:'#4a4a4a',n:'Графит'},{h:'#686868',n:'Серый'}], t:'Платья и костюмы исключительно чёрных тонов. Смелый незабываемый образ.' },
+  lemon:        { name:'Лимонный',       c:[{h:'#fffde7',n:'Крем'},{h:'#f9e44a',n:'Лимон'},{h:'#c8a800',n:'Золото'},{h:'#7a6200',n:'Янтарь'}], t:'Платья лимонного крема или жёлтые. Кавалерам — светлый костюм с жёлтым акцентом.' },
+  nature:       { name:'Природный',      c:[{h:'#e8dcc8',n:'Лён'},{h:'#8a9e7a',n:'Шалфей'},{h:'#6b7a5c',n:'Оливка'},{h:'#c4b99a',n:'Пшеница'}], t:'Платья шалфея, оливки, льна. Кавалерам — лесной или хаки костюм.' },
+  milk:         { name:'Молочный',       c:[{h:'#faf6ee',n:'Молоко'},{h:'#e8dcc8',n:'Айвори'},{h:'#c8a87a',n:'Карамель'},{h:'#8a6840',n:'Какао'}], t:'Платья молока, слоновой кости, карамели. Кавалерам — льняной или бежевый костюм.' },
+  choco:        { name:'Шоколад',        c:[{h:'#f0e8d8',n:'Крем'},{h:'#d4a07a',n:'Терракота'},{h:'#8b5e3c',n:'Кофе'},{h:'#4a2c1a',n:'Шоколад'}], t:'Платья капучино, терракоты, кофе. Кавалерам — костюм цвета шоколада.' },
+  forest:       { name:'Тёмный лес',     c:[{h:'#a5c49a',n:'Мята'},{h:'#f5f0e8',n:'Слоновая кость'},{h:'#2d4a2d',n:'Ель'},{h:'#1a1a1a',n:'Чёрный'}], t:'Платья нежно-зелёные или слоновой кости. Кавалерам — тёмно-зелёный смокинг.' },
+  bw:           { name:'Монохром',       c:[{h:'#e8e0d4',n:'Слоновая кость'},{h:'#b8a898',n:'Мокко'},{h:'#5a5040',n:'Тауп'},{h:'#1a1a1a',n:'Антрацит'}], t:'Платья шампань или тауп. Кавалерам — тёмно-серый или чёрный костюм.' },
+  navy:         { name:'Морской',        c:[{h:'#f0ece4',n:'Жемчуг'},{h:'#a0b8d4',n:'Стальной'},{h:'#c8b87a',n:'Золото'},{h:'#1b2d44',n:'Полночь'}], t:'Платья серебристо-голубые или золотые. Кавалерам — тёмно-синий смокинг.' },
+};
+
+// ── STYLE SELECT ──
+function selStyle(el) {
+  document.querySelectorAll('.sc').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  ST.style = el.dataset.s; ST.styleName = el.dataset.n; ST.styleEmoji = el.dataset.e;
+}
+
+// ── DC SELECT ──
+function selDC(el) {
+  document.querySelectorAll('.dc').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  ST.dc = el.dataset.dc; ST.dcName = DC[el.dataset.dc]?.name || el.dataset.dc;
+  renderDCPrev();
+}
+
+function renderDCPrev() {
+  const p = DC[ST.dc]; if (!p) return;
+  document.getElementById('dp-sw').innerHTML = p.c.map(c =>
+    `<div class="dp-s" style="background:${c.h}"><span>${c.n}</span></div>`).join('');
+  document.getElementById('dp-txt').textContent = p.t;
+  document.getElementById('dc-prev').classList.add('show');
+}
+renderDCPrev();
+
+// ── TIMING EDITOR ──
+const EMOJIS = ['💐','💍','📸','🚗','🥂','🎂','🎆','🎵','🌹','👗','💃','🎉','✈️','🌅','🍾','🎤','🕯️','🌙','⭐','🎊'];
+let pickerTarget = null;
+
+function toggleTiming(el) {
+  el.classList.toggle('on');
+  showTiming = el.classList.contains('on');
+  document.getElementById('tm-editor').style.opacity = showTiming ? '1' : '0.35';
+  document.getElementById('tm-editor').style.pointerEvents = showTiming ? 'auto' : 'none';
+}
+
+function renderTimingList() {
+  const list = document.getElementById('tm-list');
+  list.innerHTML = timingItems.map((item, i) => `
+    <div class="tm-item" id="tmi-${i}">
+      <span class="tm-drag" title="Перетащить">⠿</span>
+      <button class="tm-emoji-btn" onclick="openEmojiPicker(${i})" title="Сменить эмодзи">${item.emoji}</button>
+      <div class="tm-fields">
+        <input class="tm-name" type="text" value="${item.name}" placeholder="Событие"
+          oninput="timingItems[${i}].name=this.value">
+        <input class="tm-time" type="time" value="${item.time}"
+          oninput="timingItems[${i}].time=this.value">
+      </div>
+      <button class="tm-del" onclick="delTmItem(${i})" title="Удалить">✕</button>
+    </div>`).join('');
+  initDragDrop();
+}
+
+function addTmItem() {
+  timingItems.push({ emoji:'✨', name:'', time:'12:00' });
+  renderTimingList();
+  // focus new item name
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('.tm-name');
+    inputs[inputs.length-1]?.focus();
+  }, 50);
+}
+
+function delTmItem(i) {
+  if (timingItems.length <= 1) return toast('Нельзя удалить последнее событие');
+  timingItems.splice(i, 1);
+  renderTimingList();
+}
+
+// Emoji picker
+function openEmojiPicker(idx) {
+  pickerTarget = idx;
+  let picker = document.getElementById('emoji-picker');
+  if (!picker) {
+    picker = document.createElement('div');
+    picker.id = 'emoji-picker';
+    picker.className = 'emoji-picker';
+    picker.innerHTML = `<div class="ep-grid">${EMOJIS.map(e =>
+      `<button class="ep-em" onclick="pickEmoji('${e}')">${e}</button>`).join('')}</div>`;
+    document.body.appendChild(picker);
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#emoji-picker') && !e.target.closest('.tm-emoji-btn'))
+        picker.classList.remove('show');
+    });
+  }
+  picker.classList.toggle('show');
+}
+
+function pickEmoji(em) {
+  if (pickerTarget !== null) {
+    timingItems[pickerTarget].emoji = em;
+    renderTimingList();
+  }
+  document.getElementById('emoji-picker')?.classList.remove('show');
+}
+
+// Drag-and-drop reorder (touch + mouse)
+function initDragDrop() {
+  const list = document.getElementById('tm-list');
+  let dragEl = null, startY = 0, startIdx = 0;
+
+  list.querySelectorAll('.tm-drag').forEach((handle, i) => {
+    handle.addEventListener('touchstart', e => {
+      dragEl = handle.closest('.tm-item');
+      startIdx = i;
+      startY = e.touches[0].clientY;
+      dragEl.style.opacity = '0.6';
+    }, { passive: true });
+  });
+
+  list.addEventListener('touchmove', e => {
+    if (!dragEl) return;
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    const items = [...list.querySelectorAll('.tm-item')];
+    const targetEl = items.find(el => {
+      const r = el.getBoundingClientRect();
+      return y >= r.top && y <= r.bottom && el !== dragEl;
+    });
+    if (targetEl) {
+      const targetIdx = items.indexOf(targetEl);
+      const tmp = timingItems[startIdx];
+      timingItems.splice(startIdx, 1);
+      timingItems.splice(targetIdx, 0, tmp);
+      startIdx = targetIdx;
+      renderTimingList();
+      dragEl = list.querySelectorAll('.tm-item')[startIdx];
+      if (dragEl) dragEl.style.opacity = '0.6';
+    }
+  }, { passive: false });
+
+  list.addEventListener('touchend', () => {
+    if (dragEl) { dragEl.style.opacity = ''; dragEl = null; }
+  });
+}
+// ── PHOTOS ──
+function initPhotoStep() {
+  ['groom','bride'].forEach(key => {
+    if (photos[key]) {
+      const img = document.getElementById('pi-'+key);
+      img.src = photos[key].preview; img.style.display = 'block';
+      document.getElementById('ps-'+key).classList.add('has-photo');
+    }
+  });
+  renderGalleryGrid();
+}
+
+function triggerPhoto(key) { document.getElementById('pf-'+key).click(); }
+
+async function handlePhoto(key, input) {
+  const file = input.files[0]; if (!file) return;
+  if (file.size > 5*1024*1024) return toast('Файл больше 5 МБ');
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('pi-'+key);
+    img.src = e.target.result; img.style.display = 'block';
+    document.getElementById('ps-'+key).classList.add('has-photo');
+    photos[key] = { file, preview: e.target.result, url: null };
+  };
+  reader.readAsDataURL(file);
+}
+
+function delPhoto(key, e) {
+  e.stopPropagation();
+  photos[key] = null;
+  const img = document.getElementById('pi-'+key);
+  img.src = ''; img.style.display = 'none';
+  document.getElementById('ps-'+key).classList.remove('has-photo');
+  document.getElementById('pf-'+key).value = '';
+}
+
+// Gallery
+const MAX_GALLERY = 8;
+
+function renderGalleryGrid() {
+  const grid = document.getElementById('gallery-grid'); if (!grid) return;
+  grid.innerHTML = gallery.map((item, i) => `
+    <div class="photo-slot has-photo" id="psg-${i}">
+      <img src="${item.preview}" style="width:100%;height:100%;object-fit:cover;display:block">
+      <button class="photo-del" style="display:flex" onclick="delGallery(${i},event)">✕</button>
+    </div>`).join('');
+}
+
+function addGallerySlot() {
+  if (gallery.length >= MAX_GALLERY) return toast('Максимум 8 фото в галерее');
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+  inp.onchange = e => {
+    const files = [...e.target.files].slice(0, MAX_GALLERY - gallery.length);
+    let loaded = 0;
+    files.forEach(file => {
+      if (file.size > 5*1024*1024) { toast('Один файл больше 5 МБ — пропущен'); loaded++; return; }
+      const r = new FileReader();
+      r.onload = ev => {
+        gallery.push({ file, preview: ev.target.result, url: null });
+        loaded++;
+        if (loaded === files.length) renderGalleryGrid();
+      };
+      r.readAsDataURL(file);
+    });
+  };
+  inp.click();
+}
+
+function delGallery(i, e) {
+  e.stopPropagation();
+  gallery.splice(i, 1);
+  renderGalleryGrid();
+}
+
+function skipPhotos() { step++; updateUI(); }
+
+async function uploadPhotos(slug) {
+  // Portrait photos
+  for (const key of ['groom','bride']) {
+    if (!photos[key]?.file) continue;
+    const ext = photos[key].file.name.split('.').pop()||'jpg';
+    const path = `${slug}/photos/${key}.${ext}`;
+    const resp = await fetch(`${SB.url}/storage/v1/object/${SB.bucket}/${path}`, {
+      method:'POST',
+      headers:{ 'Authorization':`Bearer ${SB.key}`, 'Content-Type':photos[key].file.type||'image/jpeg', 'x-upsert':'true' },
+      body: photos[key].file
+    });
+    if (resp.ok) photos[key].url = `${SB.url}/storage/v1/object/public/${SB.bucket}/${path}`;
+  }
+  // Gallery photos
+  for (let i=0; i<gallery.length; i++) {
+    const item = gallery[i];
+    if (!item?.file) continue;
+    const ext = item.file.name.split('.').pop()||'jpg';
+    const path = `${slug}/photos/gallery-${i+1}.${ext}`;
+    const resp = await fetch(`${SB.url}/storage/v1/object/${SB.bucket}/${path}`, {
+      method:'POST',
+      headers:{ 'Authorization':`Bearer ${SB.key}`, 'Content-Type':item.file.type||'image/jpeg', 'x-upsert':'true' },
+      body: item.file
+    });
+    if (resp.ok) item.url = `${SB.url}/storage/v1/object/public/${SB.bucket}/${path}`;
+  }
+}
+
+function updateUI() {
+  for (let i=1;i<=STEPS;i++) {
+    const d = document.getElementById('d'+i);
+    d.className = 'dot' + (i<step?' done':i===step?' active':'');
+  }
+  document.getElementById('prog-bar').style.width = ((step-1)/(STEPS-1)*100)+'%';
+  document.getElementById('tb-step').textContent = step+' / '+STEPS;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const sc = document.getElementById('s'+step); if (sc) sc.classList.add('active');
+  document.getElementById('btn-bk').style.display = step>1 ? 'flex' : 'none';
+  document.getElementById('btn-nx').textContent = step===STEPS ? '✦ Создать сайт' : 'Далее →';
+  if (step === 4) renderTimingList();
+  if (step === 3) initPhotoStep();
+  document.getElementById('scroll').scrollTop = 0;
+}
+
+function handleNext() {
+  if (step === 5) fillReview();
+  if (step === STEPS) { startGen(); return; }
+  if (step < STEPS) { step++; updateUI(); }
+}
+
+function prevStep() { if (step>1) { step--; updateUI(); } }
+
+// ── REVIEW ──
+function fillReview() {
+  const g = gi('groom')||'Александр', b = gi('bride')||'Мария';
+  const d = gi('wdate'), c = gi('city')||'Москва';
+  const a1=gi('addr1')||'—', t1=gi('time1')||'—', a2=gi('addr2')||'—', t2=gi('time2')||'—';
+  const dcs = gi('dc-style')||'Торжественный вечерний';
+  const ds = d ? new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}) : '—';
+  st('rv-style', ST.styleEmoji+' '+ST.styleName);
+  st('rv-groom',g); st('rv-bride',b); st('rv-date',ds); st('rv-city',c);
+  st('rv-addr1',a1); st('rv-time1',t1); st('rv-addr2',a2); st('rv-time2',t2);
+  st('rv-dcs',dcs); st('rv-dcp',ST.dcName);
+
+  // Photos review
+  const pc = document.getElementById('rv-photos-card');
+  const photoCount = ['groom','bride'].filter(k=>photos[k]).length + gallery.length;
+  if (!photoCount) {
+    pc.style.display = 'none';
+  } else {
+    pc.style.display = 'block';
+    const labels = { groom:'Жених', bride:'Невеста' };
+    let html = ['groom','bride'].map(k => {
+      if (!photos[k]) return '';
+      return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <img src="${photos[k].preview}" style="width:44px;height:44px;object-fit:cover;border-radius:5px;border:1px solid var(--bord)">
+        <span style="font-size:.78rem;font-weight:300;color:var(--muted)">${labels[k]}</span>
+        <span style="margin-left:auto;font-size:.65rem;color:var(--gold)">✓</span>
+      </div>`;
+    }).join('');
+    if (gallery.length) {
+      html += `<div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+        <div style="display:flex;gap:4px">${gallery.slice(0,4).map(g=>`<img src="${g.preview}" style="width:32px;height:32px;object-fit:cover;border-radius:4px">`).join('')}${gallery.length>4?`<div style="width:32px;height:32px;background:var(--bord);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--gold)">+${gallery.length-4}</div>`:''}</div>
+        <span style="font-size:.78rem;font-weight:300;color:var(--muted)">Галерея: ${gallery.length} фото</span>
+      </div>`;
+    }
+    document.getElementById('rv-photos-list').innerHTML = html;
+  }
+
+  // Timing review
+  const tc = document.getElementById('rv-timing-card');
+  const tl = document.getElementById('rv-timing-list');
+  if (!showTiming) {
+    tc.style.display = 'none';
+  } else {
+    tc.style.display = 'block';
+    tl.innerHTML = timingItems.map(it =>
+      `<div class="rv-row"><span class="rv-k">${it.emoji} ${it.name}</span><span class="rv-v" style="color:var(--gold2)">${it.time}</span></div>`
+    ).join('');
+  }
+}
+
+// ── GENERATE ──
+const MSGS = ['Выбираю типографику...','Создаю цветовую схему...','Верстаю секции...','Добавляю анимации...','Публикую сайт...'];
+
+async function startGen() {
+  document.getElementById('s6').classList.remove('active');
+  document.getElementById('s-gen').classList.add('active');
+  document.getElementById('btm').style.display = 'none';
+  document.getElementById('dots').style.display = 'none';
+  let mi=0;
+  const iv = setInterval(() => { document.getElementById('gen-msg').textContent = MSGS[mi++%MSGS.length]; }, 1400);
+  try {
+    const html = await genSite();
+    const url  = await publishSite(html);
+    clearInterval(iv);
+    showOK(url);
+  } catch(e) {
+    clearInterval(iv);
+    document.getElementById('s-gen').classList.remove('active');
+    document.getElementById('s6').classList.add('active');
+    document.getElementById('btm').style.display = 'flex';
+    document.getElementById('dots').style.display = 'flex';
+    toast('❌ '+e.message);
+  }
+}
+
+// ── AI ──
+async function genSite() {
+  const g=gi('groom')||'Александр', b=gi('bride')||'Мария';
+  const d=gi('wdate'), c=gi('city')||'Москва';
+  const a1=gi('addr1')||'Фурманный пер., 6', t1=gi('time1')||'11:00';
+  const a2=gi('addr2')||'Садовая-Кудринская, 32', t2=gi('time2')||'17:00';
+  const ws=gi('wishes')||'Ваше присутствие — лучший подарок!';
+  const dcs=gi('dc-style')||'Торжественный вечерний';
+  const countdown = document.getElementById('t-countdown').classList.contains('on');
+  const rsvp      = document.getElementById('t-rsvp').classList.contains('on');
+  const timingStr = showTiming && timingItems.length
+    ? timingItems.map(it => `${it.time} ${it.emoji} ${it.name}`).join(' → ')
+    : null;
+  const ds = d ? new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}) : '14 июня 2025';
+  const p  = DC[ST.dc];
+  const colStr = p.c.map(x=>x.n+' '+x.h).join(', ');
+
+  const SC = {
+    rose:   {bg:'#fdf0f3',pr:'#e8689a',ac:'#c2185b',su:'#fff5f8',dk:'#3a1020',tx:'#6a2840',fn:'https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;1,300;1,400&family=DM+Sans:wght@300;400&display=swap',fd:"'Fraunces',serif",fb:"'DM Sans',sans-serif"},
+    forest: {bg:'#0d1a0d',pr:'#4a7a4a',ac:'#c8d4a0',su:'#162416',dk:'#f5f0e8',tx:'#d0e0c0',fn:'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Raleway:wght@200;300;400&display=swap',fd:"'Cormorant Garamond',serif",fb:"'Raleway',sans-serif"},
+    bw:     {bg:'#f8f4ef',pr:'#1a1a1a',ac:'#b8a888',su:'#ffffff',dk:'#1a1a1a',tx:'#3a3028',fn:'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@200;300;400&display=swap',fd:"'Playfair Display',serif",fb:"'Jost',sans-serif"},
+    choco:  {bg:'#1a0d08',pr:'#8b5e3c',ac:'#e8c898',su:'#2c1a0e',dk:'#f0e8d8',tx:'#d4b898',fn:'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Raleway:wght@200;300;400&display=swap',fd:"'Cormorant Garamond',serif",fb:"'Raleway',sans-serif"},
+    nature: {bg:'#fdfaf4',pr:'#6b7a5c',ac:'#c9a84c',su:'#f7f1e6',dk:'#2e2a22',tx:'#5a5040',fn:'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Raleway:wght@200;300;400&display=swap',fd:"'Cormorant Garamond',serif",fb:"'Raleway',sans-serif"},
+    navy:   {bg:'#050d1a',pr:'#1b2d44',ac:'#c8b87a',su:'#0d1b2a',dk:'#f0ece4',tx:'#c0d0e4',fn:'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Raleway:wght@200;300;400&display=swap',fd:"'Cormorant Garamond',serif",fb:"'Raleway',sans-serif"},
+    milk:   {bg:'#faf6ee',pr:'#c8a87a',ac:'#a88858',su:'#f4ede0',dk:'#2e2418',tx:'#5a4830',fn:'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Jost:wght@200;300;400&display=swap',fd:"'Cormorant Garamond',serif",fb:"'Jost',sans-serif"},
+  };
+  const sc = SC[ST.style]||SC.nature;
+
+  const photoUrls = { groom: photos.groom?.url, bride: photos.bride?.url };
+  const galleryUrls = gallery.map(g => g.url).filter(Boolean);
+  const hasPortraits = photoUrls.groom || photoUrls.bride;
+  const hasGallery = galleryUrls.length > 0;
+
+  const prompt = `Создай полный HTML-файл свадебного сайта-приглашения.
+
+ДАННЫЕ: Жених: ${g}, Невеста: ${b}, Дата: ${ds}${d?' (ISO:'+d+'T12:00:00)':''}, Город: ${c}
+Церемония: ${a1}, сбор ${t1} | Банкет: ${a2}, сбор ${t2}
+Пожелания: ${ws} | Дресс-код: ${dcs}, палитра: ${p.name} (${colStr})
+
+СТИЛЬ: ${ST.styleName} | Фон:${sc.bg} Осн:${sc.pr} Акцент:${sc.ac} Поверхность:${sc.su} Текст-на-тёмном:${sc.dk}
+Шрифты: ${sc.fn} | Display: ${sc.fd} | Body: ${sc.fb}
+
+ОБЯЗАТЕЛЬНЫЕ СЕКЦИИ:
+1. Hero — имена крупно${countdown?', JS-таймер обратного отсчёта (дни/часы/мин/сек)':', красиво оформленная дата'}
+2. Блок «О паре» — два столбца рядом, каждый: ${hasPortraits
+  ? `круглый/квадратный портрет сверху (${photoUrls.groom?`жених <img src="${photoUrls.groom}" style="width:100%;height:100%;object-fit:cover">`:'заглушка из инициала'} / ${photoUrls.bride?`невеста <img src="${photoUrls.bride}" style="width:100%;height:100%;object-fit:cover">`:'заглушка из инициала'}), затем имя и описание`
+  : 'инициал в круге, имя и описание'}
+3. Локации — две карточки:
+   Церемония: кнопка «Яндекс.Карты» href=https://yandex.ru/maps/?text=${encodeURIComponent(a1+' '+c)}
+   Банкет: кнопка «Яндекс.Карты» href=https://yandex.ru/maps/?text=${encodeURIComponent(a2+' '+c)}
+${timingStr ? '4. Тайминг дня — вертикальная шкала событий:\n   '+timingStr : ''}
+5. Дресс-код — свотчи цветов (${p.c.map(x=>'div style=background:'+x.h+' title='+x.n).join(', ')}) + советы
+6. Пожелания — красивое оформление
+${hasGallery ? `7. Галерея — masonry/сетка фотографий в конце страницы, перед футером. Фото:
+${galleryUrls.map((u,i)=>`   <img src="${u}" loading="lazy" style="width:100%;height:200px;object-fit:cover;border-radius:8px">`).join('\n')}` : ''}
+${rsvp?`${hasGallery?'8':'7'}. RSVP — поле имени, кнопки «Буду!» / «Не смогу». При отказе — 4 варианта: Видео, Цветы, Конверт, Открытка`:''}
+${hasGallery?'9':'8'}. Футер с именами и датой
+
+ТРЕБОВАНИЯ: один файл, CSS в <style>, JS в <script>, адаптив 375px+, IntersectionObserver анимации, декоративные SVG, весь текст реальный.
+Верни ТОЛЬКО чистый HTML начиная с <!DOCTYPE html>, без объяснений.`;
+
+  const r = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json','x-api-key':'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','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8000,messages:[{role:'user',content:prompt}]})
+  });
+  const data = await r.json();
+  let html = data.content?.map(b=>b.text||'').join('')||'';
+  html = html.replace(/^```html?\n?/i,'').replace(/\n?```$/,'').trim();
+  if (!html||html.length<500) throw new Error('Не удалось сгенерировать сайт');
+  return html;
+}
+
+// ── PUBLISH → Supabase Storage ──
+const SB = {
+  url:    'https://vxbzuwddayvblotfpihb.supabase.co',
+  key:    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4Ynp1d2RkYXl2YmxvdGZwaWhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNTM4MzAsImV4cCI6MjA4ODYyOTgzMH0.FRl_l-1SyRcl4qlE6-EWX_ffthH1bF5C_UuEZjAK6dE',
+  bucket: 'wedding-sites',
+};
+
+async function publishSite(html) {
+  const g=gi('groom')||'александр', b=gi('bride')||'мария';
+  const slug = (g+'-'+b).toLowerCase()
+    .replace(/[^a-zа-яёa-z0-9]/gi,'')
+    .replace(/\s+/g,'-')
+    .substring(0,30)
+    + '-' + Math.random().toString(36).substring(2,7);
+
+  // 1. Загружаем фото (если есть)
+  await uploadPhotos(slug);
+
+  // 2. Загружаем HTML
+  const path = `${slug}/index.html`;
+  const resp = await fetch(`${SB.url}/storage/v1/object/${SB.bucket}/${path}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${SB.key}`,
+      'Content-Type': 'text/html; charset=utf-8',
+      'x-upsert': 'true',
+      'Cache-Control': '3600',
+    },
+    body: html
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error('Supabase: ' + (err || resp.status));
+  }
+
+  return `${SB.url}/storage/v1/object/public/${SB.bucket}/${path}`;
+}
+
+// ── SHOW SUCCESS ──
+function showOK(url) {
+  siteUrl = url;
+  const g=gi('groom')||'Александр', b=gi('bride')||'Мария';
+  const d=gi('wdate'), ds=d?new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}):'';
+
+  // Save history
+  history.unshift({g,b,ds,style:ST.styleName,emoji:ST.styleEmoji,url,ts:Date.now()});
+  if(history.length>20) history.pop();
+  localStorage.setItem('wi_hist',JSON.stringify(history));
+
+  // Fill success screen
+  document.getElementById('ok-sub').textContent = `Сайт для ${g} & ${b} опубликован — поделитесь с гостями`;
+  document.getElementById('ok-url').textContent = url;
+  document.getElementById('prev-url').textContent = url.replace(/^https?:\/\//,'').substring(0,40)+(url.length>50?'…':'');
+  document.getElementById('prev-names').textContent = `${g} & ${b}`;
+  document.getElementById('prev-date').textContent = ds;
+  document.getElementById('prev-deco-tl').textContent = ST.styleEmoji;
+  document.getElementById('prev-deco-br').textContent = ST.styleEmoji;
+
+  document.getElementById('s-gen').classList.remove('active');
+  document.getElementById('s-ok').classList.add('active');
+
+  // Generate QR
+  generateQR(url);
+
+  // Notify bot
+  if (tg) tg.sendData(JSON.stringify({action:'site_published',url,groom:g,bride:b,date:ds,style:ST.styleName}));
+}
+
+// ── QR CODE (pure canvas, no library) ──
+function generateQR(url) {
+  // Используем QR-сервис через img tag (не требует библиотеки)
+  const canvas = document.getElementById('qr-canvas');
+  const size = 100;
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Показываем QR через быстрый API (работает в WebApp)
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=1a1008&qzone=1&format=png`;
+  img.onload = () => { ctx.drawImage(img, 0, 0, size, size); };
+  img.onerror = () => {
+    // Fallback: нарисуем заглушку с текстом
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,size,size);
+    ctx.fillStyle='#c9a84c'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('QR', size/2, size/2+4);
+  };
+}
+
+// ── DOWNLOAD QR ──
+function downloadQR() {
+  const canvas = document.getElementById('qr-canvas');
+  const link = document.createElement('a');
+  link.download = 'wedding-qr.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  toast('✓ QR сохранён');
+}
+
+// ── COPY ──
+function copyUrl() {
+  if (!siteUrl) return;
+  navigator.clipboard?.writeText(siteUrl).catch(()=>{
+    const t=document.createElement('textarea');
+    t.value=siteUrl;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);
+  });
+  toast('✓ Ссылка скопирована');
+}
+
+// ── RESET ──
+function resetApp() {
+  step=1; siteUrl='';
+  ST.style='rose'; ST.styleName='Розовый Bow'; ST.styleEmoji='🎀';
+  ST.dc='powder'; ST.dcName='Пудровый';
+  showTiming = true;
+  timingItems = [
+    { emoji:'💐', name:'Сбор гостей',       time:'11:00' },
+    { emoji:'💍', name:'Выездная роспись',   time:'12:00' },
+    { emoji:'📸', name:'Фотосессия',         time:'13:00' },
+    { emoji:'🚗', name:'Прогулка по городу', time:'14:30' },
+    { emoji:'🥂', name:'Банкет',             time:'17:00' },
+    { emoji:'🎂', name:'Торт',               time:'20:00' },
+    { emoji:'🎆', name:'Салют',              time:'23:30' },
+  ];
+  // Reset photos
+  ['groom','bride'].forEach(k => {
+    photos[k] = null;
+    const img = document.getElementById('pi-'+k);
+    if (img) { img.src=''; img.style.display='none'; }
+    document.getElementById('ps-'+k)?.classList.remove('has-photo');
+    const inp = document.getElementById('pf-'+k);
+    if (inp) inp.value = '';
+  });
+  gallery = [];
+  renderGalleryGrid();
+  document.querySelectorAll('.sc').forEach(c=>c.classList.remove('sel'));
+  document.querySelector('.sc[data-s=rose]')?.classList.add('sel');
+  document.querySelectorAll('.dc').forEach(c=>c.classList.remove('sel'));
+  document.querySelector('.dc[data-dc=powder]')?.classList.add('sel');
+  document.getElementById('s-ok').classList.remove('active');
+  document.getElementById('dots').style.display='flex';
+  document.getElementById('btm').style.display='flex';
+  renderDCPrev(); updateUI();
+}
+
+// ── HISTORY ──
+function showHistory() {
+  document.querySelectorAll('.screen,.gen-screen,.ok-screen').forEach(s=>s.classList.remove('active'));
+  const hs = document.getElementById('hist-list');
+  if (!history.length) {
+    hs.innerHTML = '<div class="hist-empty"><span>💍</span><p>Нет сохранённых приглашений.<br>Создайте первое!</p></div>';
+  } else {
+    hs.innerHTML = history.slice(0,15).map(h=>`
+      <div class="hi" onclick="openHistItem('${h.url}')">
+        <div class="hi-em">${h.emoji||'💍'}</div>
+        <div class="hi-info">
+          <div class="hi-names">${h.g} & ${h.b}</div>
+          <div class="hi-meta">${h.ds||''} · ${h.style||''}</div>
+          <div class="hi-url">${h.url}</div>
+        </div>
+        <div class="hi-arr">›</div>
+      </div>`).join('');
+  }
+  document.getElementById('s-hist').classList.add('active');
+  document.getElementById('btm').style.display='none';
+  document.getElementById('dots').style.display='none';
+}
+
+function hideHistory() {
+  document.getElementById('s-hist').classList.remove('active');
+  document.getElementById('dots').style.display='flex';
+  document.getElementById('btm').style.display='flex';
+  document.getElementById('s'+step)?.classList.add('active');
+}
+
+function openHistItem(url) {
+  if (tg?.openLink) tg.openLink(url);
+  else window.open(url,'_blank');
+}
+
+// ── HELPERS ──
+function gi(id){ return document.getElementById(id)?.value?.trim(); }
+function st(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+
+updateUI();
+</script>
+</body>
+</html>
